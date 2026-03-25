@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import { motion } from "framer-motion";
-import { Upload, FileJson, Sparkles, ClipboardList, CheckCircle2, RefreshCcw } from "lucide-react";
+import { Upload, FileJson, Sparkles, ClipboardList, CheckCircle2, RefreshCcw, Copy } from "lucide-react";
 import logoIzq from "./assets/tfja_logo.svg";
 import logoDer from "./assets/tfja_90.svg";
-
+import { Check } from "lucide-react";
 const ejemploTexto = ``;
 
 const opcionesResolucion = [
@@ -159,6 +159,105 @@ const styles = {
     color: "#0f172a",
     fontWeight: 700,
   },
+  fieldHeader: {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  marginBottom: 8,
+},
+
+labelLeft: {
+  display: "block",
+  fontSize: 14,
+  fontWeight: 600,
+  color: "#334155",
+  textAlign: "left",
+},
+
+copyBtn: {
+  border: "1px solid #cbd5e1",
+  background: "#fff",
+  color: "#334155",
+  borderRadius: 10,
+  padding: "4px 8px",
+  fontSize: 12,
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+},
+topActionsRow: {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 18,
+},
+
+sendBtn: {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "#0f172a",
+  color: "#fff",
+  border: 0,
+  padding: "10px 16px",
+  borderRadius: 14,
+  cursor: "pointer",
+  fontWeight: 600,
+},
+
+sendBtnDisabled: {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "#cbd5e1",
+  color: "#64748b",
+  border: 0,
+  padding: "10px 16px",
+  borderRadius: 14,
+  cursor: "not-allowed",
+  fontWeight: 600,
+},
+
+switchWrap: {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+},
+
+switchLabel: {
+  fontSize: 14,
+  fontWeight: 600,
+  color: "#334155",
+},
+
+switchTrack: {
+  width: 52,
+  height: 30,
+  borderRadius: 999,
+  border: "1px solid #cbd5e1",
+  padding: 3,
+  display: "flex",
+  alignItems: "center",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+},
+
+switchThumb: {
+  width: 22,
+  height: 22,
+  borderRadius: "50%",
+  background: "#fff",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
+},
+
+helperText: {
+  marginTop: 8,
+  fontSize: 12,
+  color: "#64748b",
+},
 };
 
 function normalizarEspacios(texto) {
@@ -440,8 +539,12 @@ function SectionTitle({ icon: Icon, children }) {
 }
 
 export default function PrototipoCapturaDemandaIA() {
+  const [camposValidados, setCamposValidados] = useState(false);
+  const [correoDestino, setCorreoDestino] = useState("");
+  const [copiado, setCopiado] = useState(null);
   const [documento, setDocumento] = useState(null);
   const [dragActivo, setDragActivo] = useState(false);
+  const [hoverCarga, setHoverCarga] = useState(false);
   const [textoOCR, setTextoOCR] = useState(ejemploTexto);
   const [procesando, setProcesando] = useState(false);
   const [mensajeCarga, setMensajeCarga] = useState("Listo para cargar un PDF o texto.");
@@ -519,7 +622,30 @@ export default function PrototipoCapturaDemandaIA() {
   }
 };
 
+const copiarTexto = async (texto, campo) => {
+  try {
+    await navigator.clipboard.writeText(String(texto || ""));
+    setCopiado(campo);
+
+    setTimeout(() => {
+      setCopiado(null);
+    }, 1500);
+  } catch (error) {
+    console.error("No se pudo copiar:", error);
+  }
+};
+
+const enviarCaptura = () => {
+  if (!camposValidados || !correoDestino.trim()) return;
+
+  console.log("Enviar captura a:", correoDestino);
+  console.log("Datos capturados:", resultado);
+
+  alert(`Captura lista para enviarse a: ${correoDestino}`);
+};
+
 const cargarArchivo = async (e) => {
+  setCamposValidados(false);
   const file = e.target.files?.[0];
   await procesarArchivo(file);
 };
@@ -568,9 +694,7 @@ return (
 
               <div style={{ textAlign: "center", flex: 1 }}>
                 <div style={styles.title}>Captura inteligente de demanda</div>
-                <div style={styles.subtitle}>
-                  Mini sistema web para cargar una demanda en PDF, digitalizarla con OCR e IA, extraer automáticamente los campos del formulario y generar una salida estructurada en JSON para validación del Oficial Jurisdiccional.
-                </div>
+              
               </div>
 
               <img
@@ -581,18 +705,8 @@ return (
             </div>
 
             <div style={{ ...styles.buttonRow, marginTop: 20, justifyContent: "center" }}>
-              <button style={styles.primaryBtn} onClick={() => fileRef.current?.click()}>
-                <Upload size={16} />
-                Cargar documento
-              </button>
-              <button style={styles.secondaryBtn} onClick={procesar}>
-                <Sparkles size={16} />
-                {procesando ? "Procesando..." : "Extraer campos"}
-              </button>
-              <button style={styles.ghostBtn} onClick={reiniciar}>
-                <RefreshCcw size={16} />
-                Reiniciar
-              </button>
+            
+             
               <input
                 ref={fileRef}
                 type="file"
@@ -604,28 +718,61 @@ return (
           </div>
         </motion.div>
 
-        <div style={styles.grid3}>
+<div style={styles.grid3}>
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
             <div style={styles.card}>
               <div style={styles.cardBody}>
                 <SectionTitle icon={ClipboardList}>Entrada del documento</SectionTitle>
 
-               <div
+              
+<motion.div
   style={{
     ...styles.infoBox,
-    border: dragActivo ? "2px dashed #0f172a" : "1px dashed #cbd5e1",
-    background: dragActivo ? "#eef4ff" : "#f8fafc",
+    border: dragActivo
+      ? "2px dashed #0f172a"
+      : hoverCarga
+      ? "2px dashed #1d4ed8"
+      : "1px dashed #cbd5e1",
+    background: dragActivo
+      ? "#dbeafe"
+      : hoverCarga
+      ? "#eff6ff"
+      : "#f8fafc",
     cursor: "pointer",
-    transition: "all 0.2s ease",
     textAlign: "center",
+    boxShadow: dragActivo
+      ? "0 0 0 4px rgba(37, 99, 235, 0.12)"
+      : hoverCarga
+      ? "0 8px 24px rgba(29, 78, 216, 0.12)"
+      : "0 0 0 rgba(0,0,0,0)",
   }}
+  animate={{
+    scale: dragActivo ? 1.02 : hoverCarga ? 1.01 : 1,
+    y: dragActivo ? -2 : hoverCarga ? -1 : 0,
+  }}
+  transition={{ duration: 0.2, ease: "easeOut" }}
+  onMouseEnter={() => setHoverCarga(true)}
+  onMouseLeave={() => setHoverCarga(false)}
   onDragOver={handleDragOver}
-  onDragLeave={handleDragLeave}
+  onDragLeave={(e) => {
+    handleDragLeave(e);
+    setHoverCarga(false);
+  }}
   onDrop={handleDrop}
   onClick={() => fileRef.current?.click()}
 >
-  <div style={{ fontSize: 14, fontWeight: 600, color: "#334155" }}>
-    {dragActivo ? "Suelte el archivo aquí" : "Subir o arrastrar archivo"}
+  <div
+    style={{
+      fontSize: 15,
+      fontWeight: 700,
+      color: dragActivo || hoverCarga ? "#1d4ed8" : "#334155",
+    }}
+  >
+    {dragActivo
+      ? "Suelte el archivo aquí"
+      : hoverCarga
+      ? "Haga clic o arrastre su archivo"
+      : "Subir o arrastrar archivo"}
   </div>
 
   <div style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
@@ -635,7 +782,7 @@ return (
   <div style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>
     {mensajeCarga}
   </div>
-</div>
+</motion.div>
 
                 <div style={{ marginTop: 16 }}>
                   <label style={styles.label}>Texto OCR / texto digitalizado</label>
@@ -649,119 +796,252 @@ return (
                 </div>
               </div>
             </div>
+            <div style={{ marginTop: 16 }}>
+  <label style={styles.label}>
+    Correo de la persona a la que se le enviará la información que se capturó
+  </label>
+  <input
+    type="email"
+    style={styles.input}
+    value={correoDestino}
+    onChange={(e) => setCorreoDestino(e.target.value)}
+    placeholder="ejemplo@correo.com"
+  />
+  <div style={styles.helperText}>
+    Este correo se habilita para envío cuando los campos hayan sido validados.
+  </div>
+</div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-            <div style={styles.card}>
+           
               <div style={styles.cardBody}>
                 <SectionTitle icon={CheckCircle2}>Formulario capturado</SectionTitle>
 
-                <div style={styles.formGrid}>
-                  <div style={styles.full}>
-                    <label style={styles.label}>Actor</label>
-                    <input
-                      style={styles.input}
-                      value={resultado.actor}
-                      onChange={(e) => setResultado({ ...resultado, actor: e.target.value })}
-                    />
-                  </div>
+                 <div style={styles.topActionsRow}>
+    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+  {camposValidados && (
+    <button style={styles.primaryBtn}>
+      Enviar
+    </button>
+  )}
 
-                  <div>
-                    <label style={styles.label}>Fecha de presentación</label>
-                    <input
-                      style={styles.input}
-                      value={resultado.fechaPresentacion}
-                      onChange={(e) => setResultado({ ...resultado, fechaPresentacion: e.target.value })}
-                    />
-                  </div>
+  {documento && (
+    <button style={styles.secondaryBtn} onClick={reiniciar}>
+      <RefreshCcw size={16} />
+      Reiniciar
+    </button>
+  )}
+</div>
 
-                  <div>
-                    <label style={styles.label}>Cuantía</label>
-                    <input
-                      style={styles.input}
-                      value={resultado.cuantia}
-                      onChange={(e) => setResultado({ ...resultado, cuantia: e.target.value })}
-                    />
-                  </div>
+    {documento && (
+  <div style={styles.switchWrap}>
+    <span style={styles.switchLabel}>Campos validados</span>
 
-                  <div style={styles.full}>
-                    <label style={styles.label}>Representante legal</label>
-                    <input
-                      style={styles.input}
-                      value={resultado.representanteLegal}
-                      onChange={(e) => setResultado({ ...resultado, representanteLegal: e.target.value })}
-                    />
-                  </div>
+    <motion.button
+      type="button"
+      onClick={() => setCamposValidados((prev) => !prev)}
+      style={{
+        ...styles.switchTrack,
+        justifyContent: camposValidados ? "flex-end" : "flex-start",
+        background: camposValidados ? "#22c55e" : "#e5e7eb",
+        borderColor: camposValidados ? "#22c55e" : "#cbd5e1",
+      }}
+      animate={{
+        backgroundColor: camposValidados ? "#22c55e" : "#e5e7eb",
+      }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        style={styles.switchThumb}
+        layout
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      />
+    </motion.button>
+  </div>
+)}
+  </div>
 
-                  <div style={styles.full}>
-                    <label style={styles.label}>Tipo de resolución</label>
-                    <select
-                      style={styles.input}
-                      value={resultado.tipoResolucion}
-                      onChange={(e) => setResultado({ ...resultado, tipoResolucion: e.target.value })}
-                    >
-                      {opcionesResolucion.map((op) => (
-                        <option key={op} value={op}>{op}</option>
-                      ))}
-                    </select>
-                  </div>
+  <div style={styles.formGrid}>
 
                   <div style={styles.full}>
-                    <label style={styles.label}>Resolución impugnada</label>
-                    <textarea
-                      style={styles.textarea}
-                      value={resultado.resolucionImpugnada}
-                      onChange={(e) => setResultado({ ...resultado, resolucionImpugnada: e.target.value })}
-                    />
-                  </div>
 
-                  <div>
-                    <label style={styles.label}>Fecha de recepción</label>
-                    <input
-                      style={styles.input}
-                      value={resultado.fechaRecepcion}
-                      onChange={(e) => setResultado({ ...resultado, fechaRecepcion: e.target.value })}
-                    />
-                  </div>
 
-                  <div>
-                    <label style={styles.label}>Ley</label>
-                    <select
-                      style={styles.input}
-                      value={resultado.ley}
-                      onChange={(e) => setResultado({ ...resultado, ley: e.target.value })}
-                    >
-                      {opcionesLey.map((op) => (
-                        <option key={op} value={op}>{op}</option>
-                      ))}
-                    </select>
-                  </div>
 
-                  <div>
-                    <label style={styles.label}>Materia</label>
-                    <select
-                      style={styles.input}
-                      value={resultado.materia}
-                      onChange={(e) => setResultado({ ...resultado, materia: e.target.value })}
-                    >
-                      {opcionesMateria.map((op) => (
-                        <option key={op} value={op}>{op}</option>
-                      ))}
-                    </select>
-                  </div>
+  <div style={styles.full}>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Actor</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "actor" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "actor" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "actor" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.actor, "actor")}
+    >
+      {copiado === "actor" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <input style={styles.input} value={resultado.actor} onChange={(e) => setResultado({ ...resultado, actor: e.target.value })} />
+</div>
 
-                  <div>
-                    <label style={styles.label}>Tipo materia</label>
-                    <select
-                      style={styles.input}
-                      value={resultado.tipoMateria}
-                      onChange={(e) => setResultado({ ...resultado, tipoMateria: e.target.value })}
-                    >
-                      {opcionesTipoMateria.map((op) => (
-                        <option key={op} value={op}>{op}</option>
-                      ))}
-                    </select>
-                  </div>
+
+
+<div>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Cuantía</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "cuantia" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "cuantia" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "cuantia" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.cuantia, "cuantia")}
+    >
+      {copiado === "cuantia" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <input style={styles.input} value={resultado.cuantia} onChange={(e) => setResultado({ ...resultado, cuantia: e.target.value })} />
+</div>
+
+<div style={styles.full}>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Representante legal</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "representanteLegal" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "representanteLegal" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "representanteLegal" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.representanteLegal, "representanteLegal")}
+    >
+      {copiado === "representanteLegal" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <input style={styles.input} value={resultado.representanteLegal} onChange={(e) => setResultado({ ...resultado, representanteLegal: e.target.value })} />
+</div>
+
+<div style={styles.full}>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Tipo de resolución</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "tipoResolucion" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "tipoResolucion" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "tipoResolucion" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.tipoResolucion, "tipoResolucion")}
+    >
+      {copiado === "tipoResolucion" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <select style={styles.input} value={resultado.tipoResolucion} onChange={(e) => setResultado({ ...resultado, tipoResolucion: e.target.value })}>
+    {opcionesResolucion.map((op) => <option key={op} value={op}>{op}</option>)}
+  </select>
+</div>
+
+<div style={styles.full}>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Resolución impugnada</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "resolucionImpugnada" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "resolucionImpugnada" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "resolucionImpugnada" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.resolucionImpugnada, "resolucionImpugnada")}
+    >
+      {copiado === "resolucionImpugnada" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <textarea
+    style={styles.textarea}
+    value={resultado.resolucionImpugnada}
+    onChange={(e) => setResultado({ ...resultado, resolucionImpugnada: e.target.value })}
+  />
+</div>
+
+
+<div>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Ley</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "ley" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "ley" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "ley" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.ley, "ley")}
+    >
+      {copiado === "ley" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <select style={styles.input} value={resultado.ley} onChange={(e) => setResultado({ ...resultado, ley: e.target.value })}>
+    {opcionesLey.map((op) => <option key={op} value={op}>{op}</option>)}
+  </select>
+</div>
+
+<div>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Materia</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "materia" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "materia" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "materia" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.materia, "materia")}
+    >
+      {copiado === "materia" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <select style={styles.input} value={resultado.materia} onChange={(e) => setResultado({ ...resultado, materia: e.target.value })}>
+    {opcionesMateria.map((op) => <option key={op} value={op}>{op}</option>)}
+  </select>
+</div>
+
+<div>
+  <div style={styles.fieldHeader}>
+    <label style={styles.labelLeft}>Tipo materia</label>
+    <button
+      type="button"
+      style={{
+        ...styles.copyBtn,
+        background: copiado === "tipoMateria" ? "#dcfce7" : "#fff",
+        borderColor: copiado === "tipoMateria" ? "#22c55e" : "#cbd5e1",
+        color: copiado === "tipoMateria" ? "#166534" : "#334155",
+        transition: "all 0.2s ease",
+      }}
+      onClick={() => copiarTexto(resultado.tipoMateria, "tipoMateria")}
+    >
+      {copiado === "tipoMateria" ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  </div>
+  <select style={styles.input} value={resultado.tipoMateria} onChange={(e) => setResultado({ ...resultado, tipoMateria: e.target.value })}>
+    {opcionesTipoMateria.map((op) => <option key={op} value={op}>{op}</option>)}
+  </select>
+</div>
                 </div>
               </div>
             </div>
