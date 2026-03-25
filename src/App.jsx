@@ -651,7 +651,7 @@ const campos = [
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     const nota = doc.splitTextToSize(
-      "Este código QR permite visualizar la información capturada en modo consulta para que el litigante pueda revisarla y copiarla.",
+      "Este código QR permite visualizar la información capturada en modo consulta para que el Oficial de partes pueda revisarla y copiarla.",
       120
     );
     doc.text(nota, 60, y + 8);
