@@ -37,7 +37,7 @@ const styles = {
   page: {
     background: "#f8fafc",
     padding: 24,
-    color: "#0f172a",
+    color: "#1e293b",
     fontFamily: "Inter, system-ui, sans-serif",
   },
   shell: {
@@ -70,7 +70,7 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    background: "#0f172a",
+    background: "#1e293b",
     color: "#fff",
     border: 0,
     padding: "10px 16px",
@@ -83,7 +83,7 @@ const styles = {
     alignItems: "center",
     gap: 8,
     background: "#fff",
-    color: "#0f172a",
+    color: "#1e293b",
     border: "1px solid #cbd5e1",
     padding: "10px 16px",
     borderRadius: 14,
@@ -107,7 +107,7 @@ const styles = {
     alignItems: "center",
     gap: 8,
     background: "transparent",
-    color: "#0f172a",
+    color: "#1e293b",
     border: 0,
     padding: "10px 12px",
     borderRadius: 14,
@@ -128,12 +128,12 @@ const styles = {
     fontWeight: 700,
     marginBottom: 18,
   },
-  label: { display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8, color: "#334155" },
+  label: { display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8, color: "#475569" },
   labelLeft: {
     display: "block",
     fontSize: 14,
     fontWeight: 600,
-    color: "#334155",
+    color: "#475569",
     textAlign: "left",
   },
   input: {
@@ -170,7 +170,8 @@ const styles = {
     boxSizing: "border-box",
     resize: "vertical",
     fontFamily: "inherit",
-    background: "#fff",
+    background: "#f1f5f9",
+    color: "#334155",
   },
   infoBox: {
     border: "1px dashed #cbd5e1",
@@ -194,7 +195,7 @@ const styles = {
   copyBtn: {
     border: "1px solid #cbd5e1",
     background: "#fff",
-    color: "#334155",
+    color: "#475569",
     borderRadius: 10,
     padding: "4px 8px",
     fontSize: 12,
@@ -218,7 +219,7 @@ const styles = {
   switchLabel: {
     fontSize: 14,
     fontWeight: 600,
-    color: "#334155",
+    color: "#475569",
   },
   switchTrack: {
     width: 52,
@@ -272,7 +273,7 @@ const styles = {
   iconBtn: {
     border: "1px solid #cbd5e1",
     background: "#fff",
-    color: "#334155",
+    color: "#475569",
     borderRadius: 12,
     padding: "8px 10px",
     cursor: "pointer",
@@ -292,7 +293,7 @@ const styles = {
   },
   modalText: {
     fontSize: 15,
-    color: "#334155",
+    color: "#475569",
     lineHeight: 1.6,
   },
   modalActions: {
@@ -307,7 +308,7 @@ const styles = {
     alignItems: "center",
     gap: 8,
     background: "#fff",
-    color: "#0f172a",
+    color: "#1e293b",
     border: "1px solid #cbd5e1",
     padding: "10px 14px",
     borderRadius: 14,
@@ -373,93 +374,138 @@ function inferirTipoResolucion(texto) {
 
 function extraerCampos(texto) {
   const limpio = String(texto || "").replace(/\r/g, "");
+  const unaLinea = limpio.replace(/\n/g, " ");
   const lineas = limpio
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
 
-  const obtenerValorLinea = (etiqueta) => {
-    const linea = lineas.find((l) => l.toUpperCase().startsWith(etiqueta.toUpperCase()));
-    if (!linea) return "";
-    return linea.substring(etiqueta.length).replace(/^[:.\-\s]+/, "").trim();
+  const extraerPorPatrones = (patrones, fuente = limpio) => {
+    for (const p of patrones) {
+      const m = fuente.match(p);
+      if (m?.[1]) return m[1].trim();
+    }
+    return "";
   };
 
-  let actor =
-    obtenerValorLinea("ACTOR") ||
-    (() => {
-      const m = limpio.match(/([A-ZÁÉÍÓÚÑ0-9\s.,&-]+S\.?\s*A\.?\s*DE\s*C\.?\s*V\.?)\s*-+\s*VS/i);
-      return m?.[1]?.trim() || "";
-    })();
+  let actor = extraerPorPatrones([
+    /apoderado legal de\s+([A-ZÁÉÍÓÚÑ0-9\s.,&-]+S\.?\s*A\.?\s*DE\s*C\.?\s*V\.?)/i,
+    /en representación de\s+([A-ZÁÉÍÓÚÑ0-9\s.,&-]+S\.?\s*A\.?\s*DE\s*C\.?\s*V\.?)/i,
+    /a nombre de\s+([A-ZÁÉÍÓÚÑ0-9\s.,&-]+S\.?\s*A\.?\s*DE\s*C\.?\s*V\.?)/i,
+    /ACTOR\s*[:.-]\s*(.+)/i,
+    /PROMOVENTE\s*[:.-]\s*(.+)/i,
+  ], unaLinea);
 
   if (!actor) {
     const empresa = lineas.find((l) => /S\.?\s*A\.?\s*DE\s*C\.?\s*V\.?/i.test(l));
-    actor = empresa || "";
+    if (empresa) actor = empresa;
   }
 
-  actor = actor.replace(/\s+-+\s*VS[\s\S]*$/i, "").replace(/,?\s*empresa fusionante[\s\S]*$/i, "").trim();
+  const actorLimpio = actor
+    ? actor.replace(/,?\s*empresa fusionante[\s\S]*$/i, "").trim()
+    : "";
 
-  let representanteLegal =
-    obtenerValorLinea("REPRESENTANTE LEGAL") ||
-    (() => {
-      const m =
-        limpio.match(/C\.\s*([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?),\s*me identifico/i) ||
-        limpio.match(/C\.\s*([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?),\s*comparezco/i) ||
-        limpio.match(/C\.\s*([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?),[\s\S]{0,180}?en mi carácter de Apoderado/i);
+  let representanteLegal = extraerPorPatrones([
+    /([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]+),\s*en mi carácter de apoderado legal/i,
+    /([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]+),\s*en mi carácter de representante legal/i,
+    /REPRESENTANTE LEGAL\s*[:.-]\s*(.+)/i,
+    /APODERADO LEGAL\s*[:.-]\s*(.+)/i,
+  ], unaLinea);
 
-      return m?.[1]?.trim() || "";
-    })();
+  const cuantia = extraerPorPatrones([
+    /CUANT[ÍI]A\s*[:.-]\s*(.+)/i,
+    /MONTO\s*[:.-]\s*(.+)/i,
+    /(?:cantidad de|crédito fiscal por|multa por)\s*(\$\s?[\d,]+(?:\.\d{2})?)/i,
+  ], unaLinea);
 
-  representanteLegal = String(representanteLegal || "")
-    .replace(/^C\.\s*/i, "")
-    .replace(/^LIC\.\s*/i, "")
+  let fechaPresentacion = extraerPorPatrones([
+    /FECHA DE PRESENTACI[ÓO]N\s*[:.-]\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /PRESENTADA EL\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /Ciudad de M[eé]xico,?\s+a\s+(?:los\s+)?(\d{1,2}\s+de\s+[A-Za-záéíóúñ]+\s+de\s+\d{4})/i,
+  ], unaLinea);
+
+  let fechaRecepcion = extraerPorPatrones([
+    /FECHA DE RECEPCI[ÓO]N\s*[:.-]\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /acuse de recepci[oó]n.*?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /se recibi[oó].*?el\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+  ], unaLinea);
+
+  let resolucionImpugnada = "";
+
+  const matchActos = limpio.match(
+    /ACTOS IMPUGNADOS[\s\S]{0,20}?:?([\s\S]{40,1000}?)(?:\n(?:IV\.|V\.|VI\.|PRETENSIONES|CONCEPTOS DE IMPUGNACI[ÓO]N|PRUEBAS))/i
+  );
+
+  if (matchActos?.[1]) {
+    resolucionImpugnada = matchActos[1].trim();
+  } else {
+    const lineasRelevantes = lineas.filter((l) =>
+      /acto impugnado|resoluci[oó]n|oficio|acuerdo de fecha|multa|cr[eé]dito fiscal/i.test(l)
+    );
+
+    if (lineasRelevantes.length) {
+      resolucionImpugnada = lineasRelevantes.slice(0, 4).join(" ");
+    }
+  }
+
+  resolucionImpugnada = resolucionImpugnada
+    .replace(/\s{2,}/g, " ")
     .trim();
 
-  const cuantia = obtenerValorLinea("CUANTÍA") || obtenerValorLinea("CUANTIA");
-  const fechaPresentacion =
-    obtenerValorLinea("FECHA DE PRESENTACIÓN") ||
-    obtenerValorLinea("FECHA DE PRESENTACION") ||
-    (() => {
-      const m = limpio.match(/Ciudad de M[eé]xico,?\s+a\s+(?:los\s+)?(\d{1,2}\s+de\s+[A-Za-záéíóúñ]+\s+de\s+\d{4})/i);
-      return m?.[1] || "";
-    })();
+  if (resolucionImpugnada.length > 500) {
+    resolucionImpugnada = resolucionImpugnada.slice(0, 500) + "...";
+  }
 
-  const fechaRecepcion =
-    obtenerValorLinea("FECHA DE RECEPCIÓN") || obtenerValorLinea("FECHA DE RECEPCION");
+  const leyRaw = extraerPorPatrones([
+    /LEY\s*[:.-]\s*(.+)/i,
+    /(Ley Federal de Procedimiento Contencioso Administrativo)/i,
+  ], unaLinea);
 
-  let resolucionImpugnada =
-    obtenerValorLinea("RESOLUCIÓN IMPUGNADA") ||
-    obtenerValorLinea("RESOLUCION IMPUGNADA") ||
-    (() => {
-      const m = limpio.match(/RESOLUCI[ÓO]N\s+QUE\s+SE\s+IMPUGNA\s*:\s*([\s\S]{20,500}?)(?:ASUNTO:|H\.\s*SALA|C\.)/i);
-      return m?.[1]?.replace(/\s{2,}/g, " ").trim() || "";
-    })();
+  const t = unaLinea.toLowerCase();
 
-  const ley = obtenerValorLinea("LEY") || "LFPCA";
-  const materia = obtenerValorLinea("MATERIA") || (limpio.toLowerCase().includes("consumidor") ? "Administrativa" : "Fiscal");
-  const tipoMateria = obtenerValorLinea("TIPO MATERIA") || (/multa/i.test(limpio) ? "Multa" : "Resolución Administrativa");
   const tipoResolucion = inferirTipoResolucion(limpio);
 
+  const recepcionPorCorreo =
+    /recepci[oó]n por correo|presentad[oa] por correo|remitid[oa] por correo|enviad[oa] por correo/i.test(unaLinea);
+
+  const enviadoPorOtraSala = /otra sala/i.test(unaLinea);
+
+  const materia =
+    t.includes("aduaner") ? "Aduanera" :
+      t.includes("administrativ") ? "Administrativa" :
+        t.includes("seguridad social") ? "Seguridad Social" :
+          "Fiscal";
+
+  const tipoMateria =
+    /multa/i.test(unaLinea) ? "Multa" :
+      /cr[eé]dito fiscal/i.test(unaLinea) ? "Crédito Fiscal" :
+        /determinaci[oó]n/i.test(unaLinea) ? "Determinación" :
+          /negativa/i.test(unaLinea) ? "Negativa" :
+            "Resolución Administrativa";
+
   return {
-    actor,
+    actor: actorLimpio,
     fechaPresentacion,
     cuantia,
     representanteLegal,
     tipoResolucion,
     resolucionImpugnada,
+    enviadoPorOtraSala,
+    recepcionPorCorreo,
     fechaRecepcion,
-    ley,
+    ley: leyRaw || "LFPCA",
     materia,
     tipoMateria,
     confianza: {
-      actor: actor ? 0.98 : 0.2,
-      fechaPresentacion: fechaPresentacion ? 0.98 : 0.2,
-      cuantia: cuantia ? 0.98 : 0.2,
-      representanteLegal: representanteLegal ? 0.98 : 0.2,
-      tipoResolucion: 0.85,
-      resolucionImpugnada: resolucionImpugnada ? 0.95 : 0.2,
-      ley: ley ? 0.95 : 0.2,
-      materia: materia ? 0.95 : 0.2,
-      tipoMateria: tipoMateria ? 0.95 : 0.2,
+      actor: actorLimpio ? 0.94 : 0.22,
+      fechaPresentacion: fechaPresentacion ? 0.91 : 0.18,
+      cuantia: cuantia ? 0.88 : 0.16,
+      representanteLegal: representanteLegal ? 0.90 : 0.2,
+      tipoResolucion: 0.83,
+      resolucionImpugnada: resolucionImpugnada ? 0.81 : 0.17,
+      ley: 0.79,
+      materia: 0.78,
+      tipoMateria: 0.76,
     },
   };
 }
@@ -489,20 +535,19 @@ export default function PrototipoCapturaDemandaIA() {
   const [enlaceConsulta, setEnlaceConsulta] = useState("");
   const fileRef = useRef(null);
 
-  const params = new URLSearchParams(window.location.search);
-  const esModoConsulta = params.get("modo") === "consulta";
-  const dataConsulta = params.get("data");
+const params = new URLSearchParams(window.location.search);
+const esModoConsulta = params.get("modo") === "consulta";
+const folioConsulta = params.get("folio");
 
-  let informacionConsulta = null;
-  if (esModoConsulta && dataConsulta) {
-    try {
-      informacionConsulta = JSON.parse(
-        decodeURIComponent(escape(atob(decodeURIComponent(dataConsulta))))
-      );
-    } catch (e) {
-      informacionConsulta = null;
-    }
+let informacionConsulta = null;
+if (esModoConsulta && folioConsulta) {
+  try {
+    const guardado = localStorage.getItem(folioConsulta);
+    informacionConsulta = guardado ? JSON.parse(guardado) : null;
+  } catch (e) {
+    informacionConsulta = null;
   }
+}
 
   const jsonSalida = useMemo(
     () =>
@@ -532,26 +577,25 @@ export default function PrototipoCapturaDemandaIA() {
     }
   };
 
-  const construirPayloadCaptura = () => ({
-    actor: resultado.actor,
-    fechaPresentacion: resultado.fechaPresentacion,
-    cuantia: resultado.cuantia,
-    representanteLegal: resultado.representanteLegal,
-    tipoResolucion: resultado.tipoResolucion,
-    resolucionImpugnada: resultado.resolucionImpugnada,
-    fechaRecepcion: resultado.fechaRecepcion,
-    ley: resultado.ley,
-    materia: resultado.materia,
-    tipoMateria: resultado.tipoMateria,
-    correoDestino,
-    fechaGeneracion: new Date().toISOString(),
-  });
+const construirPayloadCaptura = () => ({
+  actor: resultado.actor,
+  fechaPresentacion: resultado.fechaPresentacion,
+  cuantia: resultado.cuantia,
+  representanteLegal: resultado.representanteLegal,
+  tipoResolucion: resultado.tipoResolucion,
+  resolucionImpugnada: String(resultado.resolucionImpugnada || "").slice(0, 500),
+  fechaRecepcion: resultado.fechaRecepcion,
+  ley: resultado.ley,
+  materia: resultado.materia,
+  tipoMateria: resultado.tipoMateria,
+  fechaGeneracion: new Date().toISOString(),
+});
 
   const construirUrlConsulta = (payload) => {
-    const json = JSON.stringify(payload);
-    const encoded = btoa(unescape(encodeURIComponent(json)));
-    return `${window.location.origin}${window.location.pathname}?modo=consulta&data=${encodeURIComponent(encoded)}`;
-  };
+  const folio = `cap_${Date.now()}`;
+  localStorage.setItem(folio, JSON.stringify(payload));
+  return `${window.location.origin}${window.location.pathname}?modo=consulta&folio=${encodeURIComponent(folio)}`;
+};
 
   const generarPdfConQR = async (payload, urlConsulta) => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -570,19 +614,18 @@ export default function PrototipoCapturaDemandaIA() {
 
     y += 12;
 
-    const campos = [
-      ["Actor", payload.actor],
-      ["Fecha de presentación", payload.fechaPresentacion],
-      ["Cuantía", payload.cuantia],
-      ["Representante legal", payload.representanteLegal],
-      ["Tipo de resolución", payload.tipoResolucion],
-      ["Resolución impugnada", payload.resolucionImpugnada],
-      ["Fecha de recepción", payload.fechaRecepcion],
-      ["Ley", payload.ley],
-      ["Materia", payload.materia],
-      ["Tipo materia", payload.tipoMateria],
-      ["Correo destino", payload.correoDestino],
-    ];
+const campos = [
+  ["Actor", payload.actor],
+  ["Fecha de presentación", payload.fechaPresentacion],
+  ["Cuantía", payload.cuantia],
+  ["Representante legal", payload.representanteLegal],
+  ["Tipo de resolución", payload.tipoResolucion],
+  ["Resolución impugnada", payload.resolucionImpugnada],
+  ["Fecha de recepción", payload.fechaRecepcion],
+  ["Ley", payload.ley],
+  ["Materia", payload.materia],
+  ["Tipo materia", payload.tipoMateria],
+];
 
     campos.forEach(([label, value]) => {
       doc.setFont("helvetica", "bold");
@@ -617,17 +660,32 @@ export default function PrototipoCapturaDemandaIA() {
   };
 
   const enviarCaptura = async () => {
-    if (!camposValidados || !correoDestino.trim()) return;
+if (!camposValidados) {
+    alert("Primero debe marcar los campos como validados.");
+    return;
+  }
 
+  try {
+    console.log("Iniciando envío...");
     const payload = construirPayloadCaptura();
     const urlConsulta = construirUrlConsulta(payload);
-    const qr = await QRCode.toDataURL(urlConsulta, { width: 260, margin: 1 });
+
+    console.log("URL consulta:", urlConsulta);
+
+    const qr = await QRCode.toDataURL(urlConsulta, {
+      width: 260,
+      margin: 1,
+    });
 
     setEnlaceConsulta(urlConsulta);
     setQrDataUrl(qr);
     setMostrarModalQR(true);
 
     await generarPdfConQR(payload, urlConsulta);
+  } catch (error) {
+    console.error("Error al generar QR o PDF:", error);
+    alert("Ocurrió un error al generar el código QR o el PDF.");
+  }
   };
 
   const procesar = async () => {
@@ -785,7 +843,7 @@ export default function PrototipoCapturaDemandaIA() {
     ...styles.copyBtn,
     background: copiado === id ? "#dcfce7" : "#fff",
     borderColor: copiado === id ? "#22c55e" : "#cbd5e1",
-    color: copiado === id ? "#166534" : "#334155",
+    color: copiado === id ? "#166534" : "#475569",
     transition: "all 0.2s ease",
   });
 
@@ -801,7 +859,7 @@ export default function PrototipoCapturaDemandaIA() {
                 <div style={{ textAlign: "center", flex: 1 }}>
                   <div style={styles.title}>Captura inteligente de demanda</div>
                   <div style={styles.subtitle}>
-                    Mini sistema web para cargar una demanda en PDF, digitalizarla con OCR e IA, extraer automáticamente los campos del formulario y generar una salida estructurada en JSON para validación del Oficial Jurisdiccional.
+                    Sistema que permite cargar una demanda en formato PDF, identificar automáticamente la información relevante del documento y llenar los campos del formulario, para su posterior revisión y validación por el Oficial Jurisdiccional.
                   </div>
                 </div>
 
@@ -820,22 +878,22 @@ export default function PrototipoCapturaDemandaIA() {
                     style={{
                       ...styles.infoBox,
                       border: dragActivo
-                        ? "2px dashed #0f172a"
+                        ? "2px dashed #1e293b"
                         : hoverCarga
-                        ? "2px dashed #1d4ed8"
-                        : "1px dashed #cbd5e1",
+                          ? "2px dashed #1d4ed8"
+                          : "1px dashed #cbd5e1",
                       background: dragActivo
                         ? "#dbeafe"
                         : hoverCarga
-                        ? "#eff6ff"
-                        : "#f8fafc",
+                          ? "#eff6ff"
+                          : "#f8fafc",
                       cursor: "pointer",
                       textAlign: "center",
                       boxShadow: dragActivo
                         ? "0 0 0 4px rgba(37, 99, 235, 0.12)"
                         : hoverCarga
-                        ? "0 8px 24px rgba(29, 78, 216, 0.12)"
-                        : "0 0 0 rgba(0,0,0,0)",
+                          ? "0 8px 24px rgba(29, 78, 216, 0.12)"
+                          : "0 0 0 rgba(0,0,0,0)",
                     }}
                     animate={{
                       scale: dragActivo ? 1.02 : hoverCarga ? 1.01 : 1,
@@ -856,14 +914,14 @@ export default function PrototipoCapturaDemandaIA() {
                       style={{
                         fontSize: 15,
                         fontWeight: 700,
-                        color: dragActivo || hoverCarga ? "#1d4ed8" : "#334155",
+                        color: dragActivo || hoverCarga ? "#1d4ed8" : "#475569",
                       }}
                     >
                       {dragActivo
                         ? "Suelte el archivo aquí"
                         : hoverCarga
-                        ? "Haga clic o arrastre su archivo"
-                        : "Subir o arrastrar archivo"}
+                          ? "Haga clic o arrastre su archivo"
+                          : "Subir o arrastrar archivo"}
                     </div>
 
                     <div style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
@@ -885,21 +943,7 @@ export default function PrototipoCapturaDemandaIA() {
                     />
                   </div>
 
-                  <div style={{ marginTop: 16 }}>
-                    <label style={styles.label}>
-                      Correo de la persona a la que se le enviará la información que se capturó
-                    </label>
-                    <input
-                      type="email"
-                      style={styles.input}
-                      value={correoDestino}
-                      onChange={(e) => setCorreoDestino(e.target.value)}
-                      placeholder="ejemplo@correo.com"
-                    />
-                    <div style={styles.helperText}>
-                      Este correo se habilita para envío cuando los campos hayan sido validados.
-                    </div>
-                  </div>
+
 
                   <input
                     ref={fileRef}
@@ -919,16 +963,14 @@ export default function PrototipoCapturaDemandaIA() {
 
                   <div style={styles.topActionsRow}>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      {camposValidados && (
-                        <button
-                          type="button"
-                          style={correoDestino.trim() ? styles.primaryBtn : styles.sendBtnDisabled}
-                          disabled={!correoDestino.trim()}
-                          onClick={enviarCaptura}
-                        >
-                          Enviar
-                        </button>
-                      )}
+                      <button
+  type="button"
+  style={camposValidados ? styles.primaryBtn : styles.sendBtnDisabled}
+  disabled={!camposValidados}
+  onClick={enviarCaptura}
+>
+  Enviar
+</button>
 
                       {documento && (
                         <button type="button" style={styles.secondaryBtn} onClick={reiniciar}>
@@ -941,6 +983,7 @@ export default function PrototipoCapturaDemandaIA() {
                     {documento && (
                       <div style={styles.switchWrap}>
                         <span style={styles.switchLabel}>Campos validados</span>
+
                         <motion.button
                           type="button"
                           onClick={() => setCamposValidados((prev) => !prev)}
@@ -949,6 +992,7 @@ export default function PrototipoCapturaDemandaIA() {
                             justifyContent: camposValidados ? "flex-end" : "flex-start",
                             background: camposValidados ? "#22c55e" : "#e5e7eb",
                             borderColor: camposValidados ? "#22c55e" : "#cbd5e1",
+                            cursor: "pointer"
                           }}
                           animate={{
                             backgroundColor: camposValidados ? "#22c55e" : "#e5e7eb",
@@ -976,17 +1020,10 @@ export default function PrototipoCapturaDemandaIA() {
                       <input style={styles.input} value={resultado.actor} onChange={(e) => setResultado({ ...resultado, actor: e.target.value })} />
                     </div>
 
-                    <div>
-                      <div style={styles.fieldHeader}>
-                        <label style={styles.labelLeft}>Fecha de presentación</label>
-                        <button type="button" style={copyStyle("fechaPresentacion")} onClick={() => copiarTexto(resultado.fechaPresentacion, "fechaPresentacion")}>
-                          {copiado === "fechaPresentacion" ? <Check size={14} /> : <Copy size={14} />}
-                        </button>
-                      </div>
-                      <input style={styles.input} value={resultado.fechaPresentacion} onChange={(e) => setResultado({ ...resultado, fechaPresentacion: e.target.value })} />
-                    </div>
 
-                    <div>
+
+                    <div style={styles.full}>
+
                       <div style={styles.fieldHeader}>
                         <label style={styles.labelLeft}>Cuantía</label>
                         <button type="button" style={copyStyle("cuantia")} onClick={() => copiarTexto(resultado.cuantia, "cuantia")}>
@@ -1034,15 +1071,7 @@ export default function PrototipoCapturaDemandaIA() {
                       />
                     </div>
 
-                    <div>
-                      <div style={styles.fieldHeader}>
-                        <label style={styles.labelLeft}>Fecha de recepción</label>
-                        <button type="button" style={copyStyle("fechaRecepcion")} onClick={() => copiarTexto(resultado.fechaRecepcion, "fechaRecepcion")}>
-                          {copiado === "fechaRecepcion" ? <Check size={14} /> : <Copy size={14} />}
-                        </button>
-                      </div>
-                      <input style={styles.input} value={resultado.fechaRecepcion} onChange={(e) => setResultado({ ...resultado, fechaRecepcion: e.target.value })} />
-                    </div>
+
 
                     <div>
                       <div style={styles.fieldHeader}>
